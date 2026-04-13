@@ -1,0 +1,76 @@
+[
+  {
+    "ContainingType": "ApiProjetoVagas.Controllers.LoginController",
+    "Method": "Logar",
+    "RelativePath": "api/Login",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dados",
+        "Type": "ApiProjetoVagas.Models.Logar",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ApiProjetoVagas.Controllers.VagasController",
+    "Method": "Listar",
+    "RelativePath": "api/Vagas",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ApiProjetoVagas.Controllers.VagasController",
+    "Method": "Cadastrar",
+    "RelativePath": "api/Vagas",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "vaga",
+        "Type": "ApiProjetoVagas.Models.Vagas",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ApiProjetoVagas.Controllers.VagasController",
+    "Method": "Deletar",
+    "RelativePath": "api/Vagas",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ApiProjetoVagas.Controllers.VagasController",
+    "Method": "Editar",
+    "RelativePath": "api/Vagas",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "vaga",
+        "Type": "ApiProjetoVagas.Models.Vagas",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
