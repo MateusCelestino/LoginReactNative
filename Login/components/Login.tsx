@@ -1,6 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, Pressable, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+
 
 
 export default function Login({navigation}: any) {
@@ -8,7 +10,7 @@ export default function Login({navigation}: any) {
   const [senha, setSenha] = useState<string>("");
   
   function handleLogin() {
-    fetch ("https://localhost:7019/api/Login",
+    fetch ("https://localhost:7177/api/Login",
      {
       
       method: "POST",
@@ -23,9 +25,9 @@ export default function Login({navigation}: any) {
     .then((resposta) => { console.log(resposta) 
     if (resposta.ok) {
       console.log("Login bem-sucedido");
-      // navigation.navigate("Home");
+      navigation.navigate("Home");
     } else {
-      console.log("Login falhou");
+      alert("Login falhou. Verifique suas credenciais e tente novamente.");
     }
 
     });
