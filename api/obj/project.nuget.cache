@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "bLsyNEiXJdI=",
+  "dgSpecHash": "nEbgwEBuUv8=",
   "success": true,
-  "projectFilePath": "C:\\Users\\delle\\OneDrive\\Documentos\\GitHub\\ApiLoginCSharp\\ApiProjetoVagas\\ApiProjetoVagas.csproj",
+  "projectFilePath": "C:\\Users\\delle\\OneDrive\\Documentos\\GitHub\\LoginReactNative\\api\\ApiProjetoVagas.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\delle\\.nuget\\packages\\microsoft.extensions.apidescription.server\\6.0.5\\microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
     "C:\\Users\\delle\\.nuget\\packages\\microsoft.openapi\\1.6.14\\microsoft.openapi.1.6.14.nupkg.sha512",
