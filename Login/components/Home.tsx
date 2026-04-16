@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 
 // Interfaces
 interface Usuario {
-    nome: string; // Mapeia com o [JsonPropertyName("nome")] do C#
+    nome: string;
 }
 
 interface Recurso {
@@ -14,15 +14,18 @@ interface Recurso {
     titulo: string;
     info: string;
 }
-x   
+
 export default function Home() {
-    const [userName, setUserName] = useState('Visitante');
+    const [userName, setUserName] = useState<Usuario | null>(null);
     const navigation = useNavigation<any>();
+
 
     useEffect(() => {
         // Nota: 10.0.2.2 é o IP do host para o emulador Android
         // Se estiver no iOS, use 'localhost'. Se for celular físico, use o IP da sua máquina.
-        const apiUrl = Platform.OS === 'android' ? 'http://10.0.2.2:7177/api/Login' : 'http://localhost:7177/api/Login';
+        const apiUrl = Platform.OS === 'android'
+            ? 'http://10.0.2.2:7177/api/Login'
+            : 'http://localhost:7177/api/Login';
 
         fetch(apiUrl)
             .then((resposta) => {
@@ -31,15 +34,27 @@ export default function Home() {
             })
             .then((dados: Usuario) => {
                 if (dados && dados.nome) {
-                    setUserName(dados.nome);
+                    setUserName(dados);
+                } else {
+                    setUserName({ nome: 'Usuário Desconhecido' }); // Fallback caso o nome não esteja presente
                 }
             })
-            .catch((erro) => console.error('Erro ao buscar dados:', erro));
+            .catch((erro) => {
+                console.error('Erro ao buscar dados:', erro);
+                setUserName({ nome: 'Usuário Desconhecido' }); // Fallback em caso de erro
+            });
     }, []);
 
     const abrirVagas = () => {
         navigation.navigate('Vagas');
     };
+
+    const recursos: Recurso[] = [
+        { id: '1', emoji: '📋', titulo: 'Perfil', info: 'Completo seu perfil' },
+        { id: '2', emoji: '💼', titulo: 'Vagas', info: 'Explore vagas' },
+        { id: '3', emoji: '📚', titulo: 'Dicas', info: 'Dicas úteis' },
+        { id: '4', emoji: '⭐', titulo: 'Favoritos', info: 'Suas vagas' },
+    ];
 
     return (
         <View style={styles.container}>
@@ -51,12 +66,12 @@ export default function Home() {
                     <View style={styles.headerContent}>
                         <View style={styles.saudacao}>
                             <Text style={styles.oi}>Olá, 👋</Text>
-                            <Text style={styles.nomeUsuario}>{userName}</Text>
+                            <Text style={styles.nomeUsuario}>{userName?.nome || 'Usuário'}</Text>
                         </View>
                         <View style={styles.avatarContainer}>
                             <View style={styles.avatar}>
                                 <Text style={styles.avatarTexto}>
-                                    {userName ? userName.substring(0, 2).toUpperCase() : 'US'}
+                                    {userName && userName.nome ? userName.nome.substring(0, 2).toUpperCase() : 'US'}
                                 </Text>
                             </View>
                         </View>
@@ -68,11 +83,11 @@ export default function Home() {
 
                 {/* Card Destaque */}
                 <View style={styles.cardDestaque}>
-                    <View style={styles.destaqueBadge}>
-                        <Text style={styles.destaqueBadgeTexto}>🔥 Em Alta</Text>
+                    <View style={styles.destqueBadge}>
+                        <Text style={styles.destqueBadgeTexto}>🔥 Em Alta</Text>
                     </View>
-                    <Text style={styles.destaqueTitle}>Vagas Disponíveis</Text>
-                    <Text style={styles.destaqueDescricao}>
+                    <Text style={styles.destqueTitle}>Vagas Disponíveis</Text>
+                    <Text style={styles.destqueDescricao}>
                         Explore as melhores oportunidades de trabalho
                     </Text>
                     <Text style={styles.vagasCount}>23 vagas novas esta semana</Text>
@@ -199,7 +214,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
-    destaqueBadge: {
+    destqueBadge: {
         alignSelf: 'flex-start',
         backgroundColor: '#fff3e0',
         paddingVertical: 6,
@@ -207,18 +222,18 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         marginBottom: 12,
     },
-    destaqueBadgeTexto: {
+    destqueBadgeTexto: {
         fontSize: 12,
         fontWeight: 'bold',
         color: '#ff9800',
     },
-    destaqueTitle: {
+    destqueTitle: {
         fontSize: 22,
         fontWeight: 'bold',
         color: '#1a1a2e',
         marginBottom: 8,
     },
-    destaqueDescricao: {
+    destqueDescricao: {
         fontSize: 14,
         color: '#666',
         marginBottom: 12,
