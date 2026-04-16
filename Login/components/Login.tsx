@@ -5,33 +5,34 @@ import { useNavigation } from '@react-navigation/native';
 
 
 
-export default function Login({navigation}: any) {
+export default function Login({ navigation }: any) {
   const [usuario, setUsuario] = useState<string>("");
   const [senha, setSenha] = useState<string>("");
-  
-  function handleLogin() {
-    fetch ("https://localhost:7177/api/Login",
-     {
-      
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        Email: usuario,
-        Senha: senha,
-      }),
-    })
-    .then((resposta) => { console.log(resposta) 
-    if (resposta.ok) {
-      console.log("Login bem-sucedido");
-      navigation.navigate("Home");
-    } else {
-      alert("Login falhou. Verifique suas credenciais e tente novamente.");
-    }
 
-    });
-      
+  function handleLogin() {
+    fetch("https://localhost:7177/api/Login",
+      {
+
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Email: usuario,
+          Senha: senha,
+        }),
+      })
+      .then((resposta) => {
+        console.log(resposta)
+        if (resposta.ok) {
+          console.log("Login bem-sucedido");
+          navigation.navigate("Home");
+        } else {
+          alert("Login falhou. Verifique suas credenciais e tente novamente.");
+        }
+
+      });
+
   }
   return (
     <View style={styles.container}>

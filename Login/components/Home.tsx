@@ -2,8 +2,18 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Pressable, ScrollView, Image } from 'react-native';
 import { useState } from 'react';
 
-export default function Home({ navigation }: any) {
-    const [userName] = useState('João Silva');
+interface LogarProps {
+    navigation: any;
+    name: string;
+
+}
+fetch("https://localhost:7177/api/Login")
+    .then((resposta) => resposta.json())
+    .then((dados) => console.log(dados))
+    .catch((erro) => console.error("Erro ao buscar dados:", erro));
+
+export default function Home({ navigation }: LogarProps) {
+    const [userName, setUserName] = useState('');
 
     const abrirVagas = () => {
         navigation.navigate("Vagas");

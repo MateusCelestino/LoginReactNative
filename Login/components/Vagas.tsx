@@ -1,59 +1,64 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Pressable, ScrollView, Modal, TextInput, Alert } from 'react-native';
-import { useState } from 'react';
+import { Platform, StyleSheet, Text, View, Pressable, ScrollView, Modal, TextInput, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
 
-interface Vaga {
+interface Candidato {
     id: string;
-    titulo: string;
-    empresa: string;
-    salario: string;
-    localizacao: string;
-    descricao: string;
+    nome: string;
+    sobrenome: string;
+    experiencia: string;
+    email: string;
+    dataNascimento: string;
+    telefone: string;
+    valor: string;
 }
 
-const vagasData: Vaga[] = [
-    {
-        id: '1',
-        titulo: 'Desenvolvedor React Native',
-        empresa: 'Tech Solutions',
-        salario: 'R$ 5.000 - R$ 8.000',
-        localizacao: 'São Paulo, SP',
-        descricao: 'Procuramos desenvolvedor experiente em React Native para trabalhar em projetos inovadores.',
-    },
-    {
-        id: '2',
-        titulo: 'Desenvolvedor Full Stack',
-        empresa: 'Digital Innovations',
-        salario: 'R$ 6.000 - R$ 9.000',
-        localizacao: 'Rio de Janeiro, RJ',
-        descricao: 'Desenvolva aplicações web e mobile com as melhores tecnologias do mercado.',
-    },
-    {
-        id: '3',
-        titulo: 'Designer UX/UI',
-        empresa: 'Creative Studio',
-        salario: 'R$ 4.500 - R$ 7.000',
-        localizacao: 'Belo Horizonte, MG',
-        descricao: 'Crie experiências incríveis para usuários em nossas plataformas digitais.',
-    },
-    {
-        id: '4',
-        titulo: 'Gerente de Projetos',
-        empresa: 'Project Masters',
-        salario: 'R$ 7.000 - R$ 10.000',
-        localizacao: 'Curitiba, PR',
-        descricao: 'Lidere times multidisciplinares em projetos de grande impacto.',
-    },
-];
+const mapApiCandidato = (item: any): Candidato => ({
+    id: String(item.id ?? ''),
+    nome: item.Name ?? item.nome ?? '',
+    sobrenome: item.Sobrenome ?? item.sobrenome ?? '',
+    experiencia: item.Experiencia ?? item.experiencia ?? '',
+    email: item.email ?? '',
+    dataNascimento: item.DataNascimento ?? item.dataNascimento ?? '',
+    telefone: item.Telefone ?? item.telefone ?? '',
+    valor: item.valor ?? '',
+});
 
 export default function Vagas() {
     const [modalVisivel, setModalVisivel] = useState(false);
-    const [vagaSelecionada, setVagaSelecionada] = useState<Vaga | null>(null);
+    const [candidatoSelecionado, setCandidatoSelecionado] = useState<Candidato | null>(null);
     const [nome, setNome] = useState('');
     const [email, setEmail] = useState('');
+    const [candidatos, setCandidatos] = useState<Candidato[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const abrirInscricao = (vaga: Vaga) => {
-        setVagaSelecionada(vaga);
+    useEffect(() => {
+        const apiUrl = Platform.OS === 'android'
+            ? 'http://10.0.2.2:7177/api/Candidato'
+            : 'https://localhost:7177/api/Candidato';
+
+        fetch(apiUrl)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`Erro ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then((data) => {
+                const lista = Array.isArray(data) ? data.map(mapApiCandidato) : [];
+                setCandidatos(lista);
+                setError(lista.length === 0 ? 'Nenhum candidato encontrado.' : null);
+            })
+            .catch((fetchError) => {
+                console.error('Erro ao buscar candidatos:', fetchError);
+                setError('Não foi possível carregar os candidatos. Verifique a conexão.');
+            })
+            .finally(() => setLoading(false));
+    }, []);
+
+    const abrirInscricao = (candidato: Candidato) => {
+        setCandidatoSelecionado(candidato);
         setNome('');
         setEmail('');
         setModalVisivel(true);
@@ -64,58 +69,71 @@ export default function Vagas() {
             Alert.alert('Erro', 'Preencha todos os campos!');
             return;
         }
-        Alert.alert('Sucesso', `Inscrição realizada com sucesso para a vaga de ${vagaSelecionada?.titulo}!`);
+
+        Alert.alert('Sucesso', `Inscrição realizada com sucesso para ${candidatoSelecionado?.nome}!`);
         setModalVisivel(false);
+        setCandidatoSelecionado(null);
     };
 
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
 
-            {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Vagas Disponíveis</Text>
+                <Text style={styles.headerTitle}>Candidatos Disponíveis</Text>
                 <Text style={styles.headerSubtitle}>Encontre sua próxima oportunidade</Text>
             </View>
 
-            {/* Lista de Vagas */}
             <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-                {vagasData.map((vaga) => (
-                    <View key={vaga.id} style={styles.card}>
+                {loading && (
+                    <View style={styles.messageBox}>
+                        <Text style={styles.messageText}>Carregando candidatos...</Text>
+                    </View>
+                )}
+
+                {!loading && error && (
+                    <View style={styles.messageBox}>
+                        <Text style={styles.messageText}>{error}</Text>
+                    </View>
+                )}
+
+                {!loading && !error && candidatos.map((candidato) => (
+                    <View key={candidato.id} style={styles.card}>
                         <View style={styles.cardHeader}>
                             <View>
-                                <Text style={styles.titulo}>{vaga.titulo}</Text>
-                                <Text style={styles.empresa}>{vaga.empresa}</Text>
+                                <Text style={styles.nome}>{candidato.nome}</Text>
+                                <Text style={styles.sobrenome}>{candidato.sobrenome}</Text>
                             </View>
+
                             <View style={styles.badge}>
                                 <Text style={styles.badgeText}>Novo</Text>
                             </View>
                         </View>
 
-                        <Text style={styles.descricao}>{vaga.descricao}</Text>
+                        <Text style={styles.dataNascimento}>{candidato.dataNascimento}</Text>
 
                         <View style={styles.detalhes}>
                             <View style={styles.detalheItem}>
-                                <Text style={styles.detalheLabel}>💰 Salário</Text>
-                                <Text style={styles.detalheValor}>{vaga.salario}</Text>
+                                <Text style={styles.detalheLabel}>📞 Telefone</Text>
+                                <Text style={styles.detalheValor}>{candidato.telefone}</Text>
                             </View>
                             <View style={styles.detalheItem}>
-                                <Text style={styles.detalheLabel}>📍 Localização</Text>
-                                <Text style={styles.detalheValor}>{vaga.localizacao}</Text>
+                                <Text style={styles.detalheLabel}>💰 R$</Text>
+                                <Text style={styles.detalheValor}>{candidato.valor}</Text>
+                            </View>
+                            <View style={styles.detalheItem}>
+                                <Text style={styles.detalheLabel}>📧 Email</Text>
+                                <Text style={styles.detalheValor}>{candidato.email}</Text>
                             </View>
                         </View>
 
-                        <Pressable
-                            style={styles.botaoInscrever}
-                            onPress={() => abrirInscricao(vaga)}
-                        >
+                        <Pressable style={styles.botaoInscrever} onPress={() => abrirInscricao(candidato)}>
                             <Text style={styles.botaoTexto}>Inscrever-se</Text>
                         </Pressable>
                     </View>
                 ))}
             </ScrollView>
 
-            {/* Modal de Inscrição */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -131,8 +149,10 @@ export default function Vagas() {
                             </Pressable>
                         </View>
 
-                        <Text style={styles.modalVagaTitulo}>{vagaSelecionada?.titulo}</Text>
-                        <Text style={styles.modalVagaEmpresa}>{vagaSelecionada?.empresa}</Text>
+                        <Text style={styles.modalCandidatoName}>{candidatoSelecionado?.nome}</Text>
+                        <Text style={styles.modalCandidatoSobrenome}>{candidatoSelecionado?.sobrenome}</Text>
+                        <Text style={styles.modalCandidatoInfo}>Telefone: {candidatoSelecionado?.telefone}</Text>
+                        <Text style={styles.modalCandidatoInfo}>Valor: {candidatoSelecionado?.valor}</Text>
 
                         <TextInput
                             style={styles.input}
@@ -151,17 +171,11 @@ export default function Vagas() {
                             onChangeText={setEmail}
                         />
 
-                        <Pressable
-                            style={styles.botaoConfirmar}
-                            onPress={confirmarInscricao}
-                        >
+                        <Pressable style={styles.botaoConfirmar} onPress={confirmarInscricao}>
                             <Text style={styles.botaoConfirmarTexto}>Confirmar Inscrição</Text>
                         </Pressable>
 
-                        <Pressable
-                            style={styles.botaoCancelar}
-                            onPress={() => setModalVisivel(false)}
-                        >
+                        <Pressable style={styles.botaoCancelar} onPress={() => setModalVisivel(false)}>
                             <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
                         </Pressable>
                     </View>
@@ -196,6 +210,18 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
     },
+    messageBox: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+    },
+    messageText: {
+        fontSize: 14,
+        color: '#333',
+    },
     card: {
         backgroundColor: '#fff',
         borderRadius: 12,
@@ -213,13 +239,13 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 12,
     },
-    titulo: {
+    nome: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#1a1a2e',
         marginBottom: 4,
     },
-    empresa: {
+    sobrenome: {
         fontSize: 14,
         color: '#666',
     },
@@ -228,13 +254,14 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         paddingHorizontal: 12,
         borderRadius: 20,
+        alignSelf: 'flex-start',
     },
     badgeText: {
         color: '#fff',
         fontSize: 12,
         fontWeight: 'bold',
     },
-    descricao: {
+    dataNascimento: {
         fontSize: 13,
         color: '#555',
         lineHeight: 20,
@@ -302,16 +329,21 @@ const styles = StyleSheet.create({
         fontSize: 24,
         color: '#999',
     },
-    modalVagaTitulo: {
+    modalCandidatoName: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#6C63FF',
         marginBottom: 4,
     },
-    modalVagaEmpresa: {
+    modalCandidatoSobrenome: {
         fontSize: 14,
         color: '#666',
-        marginBottom: 24,
+        marginBottom: 8,
+    },
+    modalCandidatoInfo: {
+        fontSize: 13,
+        color: '#555',
+        marginBottom: 12,
     },
     input: {
         backgroundColor: '#f5f5f5',
