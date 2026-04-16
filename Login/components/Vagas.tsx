@@ -1,5 +1,15 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, Text, View, Pressable, ScrollView, Modal, TextInput, Alert } from 'react-native';
+import {
+    Platform,
+    StyleSheet,
+    Text,
+    View,
+    Pressable,
+    Modal,
+    TextInput,
+    Alert,
+    FlatList,
+} from 'react-native';
 import { useState, useEffect } from 'react';
 
 interface Candidato {
@@ -34,9 +44,10 @@ export default function Vagas() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const apiUrl = Platform.OS === 'android'
-            ? 'http://10.0.2.2:7177/api/Candidato'
-            : 'https://localhost:7177/api/Candidato';
+        const apiUrl =
+            Platform.OS === 'android'
+                ? 'http://10.0.2.2:7177/api/Candidato'
+                : 'https://localhost:7177/api/Candidato';
 
         fetch(apiUrl)
             .then((response) => {
@@ -48,7 +59,7 @@ export default function Vagas() {
             .then((data) => {
                 const lista = Array.isArray(data) ? data.map(mapApiCandidato) : [];
                 setCandidatos(lista);
-                setError(lista.length === 0 ? 'Nenhum candidato encontrado.' : null);
+                setError(null);
             })
             .catch((fetchError) => {
                 console.error('Erro ao buscar candidatos:', fetchError);
@@ -70,69 +81,112 @@ export default function Vagas() {
             return;
         }
 
-        Alert.alert('Sucesso', `Inscrição realizada com sucesso para ${candidatoSelecionado?.nome}!`);
+        Alert.alert(
+            'Sucesso',
+            `Inscrição realizada com sucesso para ${candidatoSelecionado?.nome}!`
+        );
         setModalVisivel(false);
         setCandidatoSelecionado(null);
     };
+
+    const renderHeader = () => (
+        <View style={styles.header}>
+            <Text style={styles.headerTitle}>Candidatos Disponíveis</Text>
+            <Text style={styles.headerSubtitle}>Encontre sua próxima oportunidade</Text>
+        </View>
+    );
+
+    const renderMensagem = () => {
+        if (loading) {
+            return (
+                <View style={styles.messageBox}>
+                    <Text style={styles.messageText}>Carregando candidatos...</Text>
+                </View>
+            );
+        }
+
+        if (error) {
+            return (
+                <View style={styles.messageBox}>
+                    <Text style={styles.messageText}>{error}</Text>
+                </View>
+            );
+        }
+
+        return null;
+    };
+
+    const renderCandidato = ({ item: candidato }: { item: Candidato }) => (
+        <View style={styles.card}>
+            <View style={styles.cardHeader}>
+                <View>
+                    <Text style={styles.nome}>{candidato.nome}</Text>
+                    <Text style={styles.sobrenome}>{candidato.sobrenome}</Text>
+                </View>
+
+                <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Novo</Text>
+                </View>
+            </View>
+
+            <Text style={styles.dataNascimento}>{candidato.dataNascimento}</Text>
+
+            <View style={styles.detalhes}>
+                <View style={styles.detalheItem}>
+                    <Text style={styles.detalheLabel}>📞 Telefone</Text>
+                    <Text style={styles.detalheValor}>{candidato.telefone}</Text>
+                </View>
+
+                <View style={styles.detalheItem}>
+                    <Text style={styles.detalheLabel}>💰</Text>
+                    <Text style={styles.detalheValor}>{candidato.valor}</Text>
+                </View>
+
+                <View style={styles.detalheItem}>
+                    <Text style={styles.detalheLabel}>📧 Email</Text>
+                    <Text style={styles.detalheValor}>{candidato.email}</Text>
+                </View>
+            </View>
+
+            <Pressable
+                style={styles.botaoInscrever}
+                onPress={() => abrirInscricao(candidato)}
+            >
+                <Text style={styles.botaoTexto}>Inscrever-se</Text>
+            </Pressable>
+        </View>
+    );
 
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
 
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Candidatos Disponíveis</Text>
-                <Text style={styles.headerSubtitle}>Encontre sua próxima oportunidade</Text>
-            </View>
-
-            <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-                {loading && (
-                    <View style={styles.messageBox}>
-                        <Text style={styles.messageText}>Carregando candidatos...</Text>
-                    </View>
-                )}
-
-                {!loading && error && (
-                    <View style={styles.messageBox}>
-                        <Text style={styles.messageText}>{error}</Text>
-                    </View>
-                )}
-
-                {!loading && !error && candidatos.map((candidato) => (
-                    <View key={candidato.id} style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <View>
-                                <Text style={styles.nome}>{candidato.nome}</Text>
-                                <Text style={styles.sobrenome}>{candidato.sobrenome}</Text>
-                            </View>
-
-                            <View style={styles.badge}>
-                                <Text style={styles.badgeText}>Novo</Text>
+            <FlatList
+                data={!loading && !error ? candidatos : []}
+                keyExtractor={(item) => item.id}
+                renderItem={renderCandidato}
+                showsVerticalScrollIndicator={false}
+                ListHeaderComponent={
+                    <>
+                        {renderHeader()}
+                        <View style={styles.listContent}>
+                            {renderMensagem()}
+                        </View>
+                    </>
+                }
+                ListEmptyComponent={
+                    !loading && !error ? (
+                        <View style={styles.listContent}>
+                            <View style={styles.messageBox}>
+                                <Text style={styles.messageText}>
+                                    Nenhum candidato encontrado.
+                                </Text>
                             </View>
                         </View>
-
-                        <Text style={styles.dataNascimento}>{candidato.dataNascimento}</Text>
-
-                        <View style={styles.detalhes}>
-                            <View style={styles.detalheItem}>
-                                <Text style={styles.detalheLabel}>📞 Telefone</Text>
-                                <Text style={styles.detalheValor}>{candidato.telefone}</Text>
-                            </View>
-                            <View style={styles.detalheItem}>
-                                <Text style={styles.detalheLabel}>💰 R$</Text>
-                                <Text style={styles.detalheValor}>{candidato.valor}</Text>
-                            </View>
-                            <View style={styles.detalheItem}>
-                                <Text style={styles.detalheLabel}>📧 Email</Text>
-                                <Text style={styles.detalheValor}>{candidato.email}</Text>
-                            </View>
-                        </View>
-
-                        <Pressable style={styles.botaoInscrever} onPress={() => abrirInscricao(candidato)}>
-                            <Text style={styles.botaoTexto}>Inscrever-se</Text>
-                        </Pressable>
-                    </View>
-                ))}
-            </ScrollView>
+                    ) : null
+                }
+                contentContainerStyle={styles.flatListContent}
+            />
 
             <Modal
                 animationType="slide"
@@ -149,10 +203,18 @@ export default function Vagas() {
                             </Pressable>
                         </View>
 
-                        <Text style={styles.modalCandidatoName}>{candidatoSelecionado?.nome}</Text>
-                        <Text style={styles.modalCandidatoSobrenome}>{candidatoSelecionado?.sobrenome}</Text>
-                        <Text style={styles.modalCandidatoInfo}>Telefone: {candidatoSelecionado?.telefone}</Text>
-                        <Text style={styles.modalCandidatoInfo}>Valor: {candidatoSelecionado?.valor}</Text>
+                        <Text style={styles.modalCandidatoName}>
+                            {candidatoSelecionado?.nome}
+                        </Text>
+                        <Text style={styles.modalCandidatoSobrenome}>
+                            {candidatoSelecionado?.sobrenome}
+                        </Text>
+                        <Text style={styles.modalCandidatoInfo}>
+                            Telefone: {candidatoSelecionado?.telefone}
+                        </Text>
+                        <Text style={styles.modalCandidatoInfo}>
+                            Valor: {candidatoSelecionado?.valor}
+                        </Text>
 
                         <TextInput
                             style={styles.input}
@@ -171,11 +233,19 @@ export default function Vagas() {
                             onChangeText={setEmail}
                         />
 
-                        <Pressable style={styles.botaoConfirmar} onPress={confirmarInscricao}>
-                            <Text style={styles.botaoConfirmarTexto}>Confirmar Inscrição</Text>
+                        <Pressable
+                            style={styles.botaoConfirmar}
+                            onPress={confirmarInscricao}
+                        >
+                            <Text style={styles.botaoConfirmarTexto}>
+                                Confirmar Inscrição
+                            </Text>
                         </Pressable>
 
-                        <Pressable style={styles.botaoCancelar} onPress={() => setModalVisivel(false)}>
+                        <Pressable
+                            style={styles.botaoCancelar}
+                            onPress={() => setModalVisivel(false)}
+                        >
                             <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
                         </Pressable>
                     </View>
@@ -189,6 +259,9 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f8f9ff',
+    },
+    flatListContent: {
+        paddingBottom: 16,
     },
     header: {
         backgroundColor: '#6C63FF',
@@ -206,8 +279,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#e0d9ff',
     },
-    listContainer: {
-        flex: 1,
+    listContent: {
         padding: 16,
     },
     messageBox: {
@@ -226,6 +298,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 12,
         padding: 16,
+        marginHorizontal: 16,
         marginBottom: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
