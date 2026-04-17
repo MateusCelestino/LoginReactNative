@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Pressable, ScrollView, FlatList, Platform } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useNavigation } from '@react-navigation/native';
 
 // Interfaces
@@ -15,43 +15,29 @@ interface Recurso {
     info: string;
 }
 
-export default function Home() {
+// pegar os dados do usuário que foi enviado no navigate logado e exibir na tela de home
+export default function Home({ route }: any) {
     const [userName, setUserName] = useState<Usuario | null>(null);
     const navigation = useNavigation<any>();
 
-
-    useEffect(() => {
-        // Nota: 10.0.2.2 é o IP do host para o emulador Android
-        // Se estiver no iOS, use 'localhost'. Se for celular físico, use o IP da sua máquina.
-        const apiUrl = Platform.OS === 'android'
-            ? 'http://10.0.2.2:7177/api/Login'
-            : 'http://localhost:7177/api/Login';
-
-        fetch(apiUrl)
-            .then((resposta) => {
-                if (!resposta.ok) throw new Error('Erro na resposta do servidor');
-                return resposta.json();
-            })
-            .then((dados: Usuario) => {
-                if (dados && dados.nome) {
-                    setUserName(dados);
-                } else {
-                    setUserName({ nome: 'Usuário Desconhecido' }); // Fallback caso o nome não esteja presente
-                }
-            })
-            .catch((erro) => {
-                console.error('Erro ao buscar dados:', erro);
-                setUserName({ nome: 'Usuário Desconhecido' }); // Fallback em caso de erro
-            });
-    }, []);
-
+    console.log("Dados do usuário recebidos na Home:", route.params.usuario);
     const abrirVagas = () => {
         navigation.navigate('Vagas');
     };
 
+    const abrirRecurso = (recurso: Recurso) => {
+        navigation.navigate(recurso.titulo);
+    };
+
+    useEffect(() => {
+        if (route.params.usuario) {
+            setUserName(route.params.usuario);
+        }
+    }, [route.params.usuario]);
+
     const recursos: Recurso[] = [
         { id: '1', emoji: '📋', titulo: 'Perfil', info: 'Completo seu perfil' },
-        { id: '2', emoji: '💼', titulo: 'Vagas', info: 'Explore vagas' },
+        { id: '2', emoji: '💼', titulo: 'Criar Vaga', info: 'Crie sua vaga' },
         { id: '3', emoji: '📚', titulo: 'Dicas', info: 'Dicas úteis' },
         { id: '4', emoji: '⭐', titulo: 'Favoritos', info: 'Suas vagas' },
     ];
@@ -66,7 +52,7 @@ export default function Home() {
                     <View style={styles.headerContent}>
                         <View style={styles.saudacao}>
                             <Text style={styles.oi}>Olá, 👋</Text>
-                            <Text style={styles.nomeUsuario}>{userName?.nome || 'Usuário'}</Text>
+                            <Text style={styles.nomeUsuario}>{userName?.nome || 'Usuário Desconhecido'}</Text>
                         </View>
                         <View style={styles.avatarContainer}>
                             <View style={styles.avatar}>
@@ -106,7 +92,7 @@ export default function Home() {
                         scrollEnabled={false}
                         columnWrapperStyle={{ justifyContent: 'space-between' }}
                         renderItem={({ item }) => (
-                            <Pressable style={styles.recursoCard}>
+                            <Pressable style={styles.recursoCard} onPress={() => abrirRecurso(item)}>
                                 <View style={styles.recursoIcone}>
                                     <Text style={styles.recursoEmoji}>{item.emoji}</Text>
                                 </View>

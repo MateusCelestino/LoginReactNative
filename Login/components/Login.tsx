@@ -10,7 +10,7 @@ export default function Login({ navigation }: any) {
   const [senha, setSenha] = useState<string>("");
 
   function handleLogin() {
-    fetch("https://localhost:7177/api/Login",
+    fetch("https://localhost:7177/api/Cadastro/logar",
       {
 
         method: "POST",
@@ -26,12 +26,18 @@ export default function Login({ navigation }: any) {
         console.log(resposta)
         if (resposta.ok) {
           console.log("Login bem-sucedido");
-          navigation.navigate("Home");
+          return resposta.json();
         } else {
           alert("Login falhou. Verifique suas credenciais e tente novamente.");
         }
 
-      });
+      }).then((data) => {
+        if (data) {
+          console.log(data);
+          // Enviar os dados do usuário para a próxima tela
+          navigation.navigate("Home", { usuario: data });
+        }
+      })
 
   }
   return (
@@ -49,6 +55,9 @@ export default function Login({ navigation }: any) {
         </View>
         <TouchableOpacity onPress={handleLogin} style={styles.titleContainer}>
           <Text style={styles.title}>Entrar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Cadastro')} style={styles.titleContainer}>
+          <Text style={styles.title}>Cadastro-se</Text>
         </TouchableOpacity>
       </View>
     </View>
