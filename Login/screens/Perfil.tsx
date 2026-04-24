@@ -1,9 +1,8 @@
-﻿import React, { use } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, Platform } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-
-interface Perfil {
+interface Candidato {
     id: string;
     nome: string;
     email: string;
@@ -12,85 +11,94 @@ interface Perfil {
     sobremim: string;
 }
 
-export default function Perfil() {
-    const [perfil, setPerfil] = useState<Perfil | null>(null);
-    console.log(perfil);
-useEffect(() => {
-    fetch('https://localhost:7177/api/Candidato')
-        .then((response) => response.json())
-        .then((data: Perfil) => {
-            console.log(data);
-            setPerfil(data);
-        })
-        .catch((error) => {
-            console.error('Erro ao buscar perfil:', error);
-        });
-}, []);
+export default function Candidato({ route }: any) {
+    const [userName, setUserName] = useState<Candidato | null>(null);
+    const navigation = useNavigation<any>();
+
+    console.log('Candidato route params:', route.params);
+
+
+    useEffect(() => {
+        setUserName(route.params?.usuario || null);
+    }, []);
+
     return (
-
-        <View style={styles.container}>
-            <View style={styles.headerBackground} />
-
-            <View style={styles.card}>
-                <View style={styles.avatarBox}>
-                    <Text style={styles.avatarText}>JD</Text>
-                </View>
-                <Text style={styles.name}>{perfil?.nome}</Text>
-                <Text style={styles.role}>{perfil?.experiencia}</Text>
-
-                <View style={styles.infoRow}>
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoLabel}>Email</Text>
-                        <Text style={styles.infoValue}>{perfil?.email}</Text>
+        <SafeAreaView style={styles.safeArea}>
+            <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+                <View style={styles.headerBackground} />
+                <View style={styles.card}>
+                    <View style={styles.avatarBox}>
+                        <Text style={styles.avatarText}>JD</Text>
                     </View>
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoLabel}>Telefone</Text>
-                        <Text style={styles.infoValue}>{perfil?.telefone}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.statsRow}>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>24</Text>
-                        <Text style={styles.statLabel}>Vagas</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>12</Text>
-                        <Text style={styles.statLabel}>Favoritos</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>8</Text>
-                        <Text style={styles.statLabel}>Conexões</Text>
-                    </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Sobre mim</Text>
-                    <Text style={styles.sectionText}>
-                        Profissional apaixonado por desenvolvimento de aplicativos com foco em
-                        experiências intuitivas e design moderno.
+                    <Text style={styles.name}>
+                        {userName?.nome}
                     </Text>
-                </View>
+                    <Text style={styles.role}>
+                        {userName?.experiencia}
+                    </Text>
 
-                <View style={styles.buttonsRow}>
-                    <Pressable style={styles.primaryButton}>
-                        <Text style={styles.primaryButtonText}>Editar Perfil</Text>
-                    </Pressable>
-                    <Pressable style={styles.secondaryButton}>
-                        <Text style={styles.secondaryButtonText}>Sair</Text>
-                    </Pressable>
+                    <View style={styles.infoRow}>
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoLabel}>Email</Text>
+                            <Text style={styles.infoValue}>
+                                {userName?.email}
+                            </Text>
+                        </View>
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoLabel}>Telefone</Text>
+                            <Text style={styles.infoValue}>
+                                {userName?.telefone}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                            <Text style={styles.statNumber}>24</Text>
+                            <Text style={styles.statLabel}>Vagas</Text>
+                        </View>
+                        <View style={styles.statItem}>
+                            <Text style={styles.statNumber}>12</Text>
+                            <Text style={styles.statLabel}>Favoritos</Text>
+                        </View>
+                        <View style={styles.statItem}>
+                            <Text style={styles.statNumber}>8</Text>
+                            <Text style={styles.statLabel}>Conexões</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Sobre mim</Text>
+                        <Text style={styles.sectionText}>
+                            {userName?.sobremim || 'Profissional apaixonado por desenvolvimento de aplicativos com foco em experiências intuitivas e design moderno.'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.buttonsRow}>
+                        <Pressable style={styles.primaryButton}>
+                            <Text style={styles.primaryButtonText}>Editar Candidato</Text>
+                        </Pressable>
+                        <Pressable style={styles.secondaryButton}>
+                            <Text style={styles.secondaryButtonText}>Sair</Text>
+                        </Pressable>
+                    </View>
                 </View>
-            </View>
-        </View>
+            </ScrollView>
+        </SafeAreaView >
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
+    safeArea: {
         flex: 1,
+        backgroundColor: '#eef1ff',
+    },
+    container: {
+        flexGrow: 1,
         backgroundColor: '#eef1ff',
         alignItems: 'center',
         paddingTop: 40,
+        paddingBottom: 20,
     },
     headerBackground: {
         position: 'absolute',
@@ -107,7 +115,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#ffffff',
         borderRadius: 24,
         padding: 24,
-        marginTop: 40,
+        marginTop: 80,
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 20,

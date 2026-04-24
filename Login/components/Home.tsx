@@ -26,7 +26,7 @@ export default function Home({ route }: any) {
     };
 
     const abrirRecurso = (recurso: Recurso) => {
-        navigation.navigate(recurso.titulo);
+        navigation.navigate(recurso.titulo, { usuario : userName});
     };
 
     useEffect(() => {
