@@ -19,7 +19,7 @@ interface Candidato {
     experiencia: string;
     email: string;
     dataNascimento: string;
-    telefone: string;
+    telefone?: string;
     valor: string;
 }
 
@@ -42,6 +42,7 @@ export default function Vagas() {
     const [candidatos, setCandidatos] = useState<Candidato[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [telefone, setTelefone] = useState<string>('');
 
     useEffect(() => {
         const apiUrl =
@@ -72,11 +73,12 @@ export default function Vagas() {
         setCandidatoSelecionado(candidato);
         setNome('');
         setEmail('');
+        setTelefone('');
         setModalVisivel(true);
     };
 
     const confirmarInscricao = () => {
-        if (!nome.trim() || !email.trim()) {
+        if (!nome.trim() || !email.trim() || !telefone.trim()) {
             Alert.alert('Erro', 'Preencha todos os campos!');
             return;
         }
@@ -209,9 +211,14 @@ export default function Vagas() {
                         <Text style={styles.modalCandidatoSobrenome}>
                             {candidatoSelecionado?.sobrenome}
                         </Text>
-                        <Text style={styles.modalCandidatoInfo}>
-                            Telefone: {candidatoSelecionado?.telefone}
-                        </Text>
+                        <TextInput
+                            style={styles.modalCandidatoInfo}
+                            placeholder="Seu Telefone"
+                            placeholderTextColor="#999"
+                            keyboardType="phone-pad"
+                            value={telefone}
+                            onChangeText={setTelefone}
+                        />
                         <Text style={styles.modalCandidatoInfo}>
                             Valor: {candidatoSelecionado?.valor}
                         </Text>

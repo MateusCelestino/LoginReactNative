@@ -3,51 +3,113 @@ import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, Platform }
 import { useNavigation } from '@react-navigation/native';
 
 interface Candidato {
-    id: string;
+    id: number;
     nome: string;
+    sobrenome: string;
     email: string;
     telefone: string;
+    Telefone: string;
     experiencia: string;
     sobremim: string;
+    SobreMim: string;
 }
 
-export default function Candidato({ route }: any) {
+const formatarTelefone = (tel: string): string => {
+    if (!tel) return 'Não informado';
+    const nums = tel.replace(/\D/g, '');
+    if (nums.length === 11) {
+        return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
+    }
+    if (nums.length === 10) {
+        return `(${nums.slice(0, 2)}) ${nums.slice(2, 6)}-${nums.slice(6)}`;
+    }
+    return tel;
+};
+
+export default function CandidatoScreen({ route }: any) {
     const [userName, setUserName] = useState<Candidato | null>(null);
+    const [loading, setLoading] = useState(true);
     const navigation = useNavigation<any>();
 
-    console.log('Candidato route params:', route.params);
-
-
     useEffect(() => {
-        setUserName(route.params?.usuario || null);
+        const usuario = route.params?.usuario;
+
+        console.log('=== DEBUG CANDIDATO ===');
+        console.log('Dados recebidos via route.params:', JSON.stringify(usuario, null, 2));
+
+        if (usuario) {
+            setUserName(usuario);
+            setLoading(false);
+            return;
+        }
+
+        // Se não veio via params, busca da API
+        const apiUrl =
+            Platform.OS === 'android'
+                ? 'http://10.0.2.2:7177/api/Candidato'
+                : 'http://localhost:7177/api/Candidato';
+
+        fetch(apiUrl)
+            .then((response) => response.json())
+            .then((data) => {
+                console.log('=== RESPOSTA DA API ===');
+                console.log(JSON.stringify(data, null, 2));
+                const candidato = Array.isArray(data) ? data[0] : data;
+                setUserName(candidato);
+            })
+            .catch((error) => {
+                console.error('Erro ao buscar dados do candidato:', error);
+            })
+            .finally(() => setLoading(false));
     }, []);
+
+    // Pega telefone independente de maiúsculo/minúsculo
+    const telefone = userName?.telefone ?? userName?.Telefone ?? '';
+    const sobremim = userName?.sobremim ?? userName?.SobreMim ?? '';
+    const iniciais = userName?.nome
+        ? userName.nome.substring(0, 2).toUpperCase()
+        : 'US';
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.loadingContainer}>
+                    <Text style={styles.loadingText}>Carregando...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.container}
+                showsVerticalScrollIndicator={false}
+            >
                 <View style={styles.headerBackground} />
                 <View style={styles.card}>
                     <View style={styles.avatarBox}>
-                        <Text style={styles.avatarText}>JD</Text>
+                        <Text style={styles.avatarText}>{iniciais}</Text>
                     </View>
+
                     <Text style={styles.name}>
-                        {userName?.nome}
+                        {userName?.nome} {userName?.sobrenome}
                     </Text>
                     <Text style={styles.role}>
-                        {userName?.experiencia}
+                        {userName?.experiencia || 'Experiência não informada'}
                     </Text>
 
                     <View style={styles.infoRow}>
                         <View style={styles.infoBox}>
                             <Text style={styles.infoLabel}>Email</Text>
-                            <Text style={styles.infoValue}>
-                                {userName?.email}
+                            <Text style={styles.infoValue} numberOfLines={1}>
+                                {userName?.email || 'Não informado'}
                             </Text>
                         </View>
                         <View style={styles.infoBox}>
                             <Text style={styles.infoLabel}>Telefone</Text>
                             <Text style={styles.infoValue}>
-                                {userName?.telefone}
+                                {formatarTelefone(telefone)}
                             </Text>
                         </View>
                     </View>
@@ -70,21 +132,27 @@ export default function Candidato({ route }: any) {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Sobre mim</Text>
                         <Text style={styles.sectionText}>
-                            {userName?.sobremim || 'Profissional apaixonado por desenvolvimento de aplicativos com foco em experiências intuitivas e design moderno.'}
+                            {sobremim || 'Profissional apaixonado por desenvolvimento de aplicativos com foco em experiências intuitivas e design moderno.'}
                         </Text>
                     </View>
 
                     <View style={styles.buttonsRow}>
-                        <Pressable style={styles.primaryButton}>
+                        <Pressable
+                            style={styles.primaryButton}
+                            onPress={() => navigation.navigate('EditarCandidato', { usuario: userName })}
+                        >
                             <Text style={styles.primaryButtonText}>Editar Candidato</Text>
                         </Pressable>
-                        <Pressable style={styles.secondaryButton}>
+                        <Pressable
+                            style={styles.secondaryButton}
+                            onPress={() => navigation.goBack()}
+                        >
                             <Text style={styles.secondaryButtonText}>Sair</Text>
                         </Pressable>
                     </View>
                 </View>
             </ScrollView>
-        </SafeAreaView >
+        </SafeAreaView>
     );
 }
 
@@ -92,6 +160,15 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: '#eef1ff',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        fontSize: 16,
+        color: '#6C63FF',
     },
     container: {
         flexGrow: 1,
