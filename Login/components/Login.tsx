@@ -1,79 +1,85 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TextInput, Pressable, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
-
-
+import { supabase } from '../lib/supabase';
 
 export default function Login({ navigation }: any) {
-  const [usuario, setUsuario] = useState<string>("");
-  const [senha, setSenha] = useState<string>("");
+  const [usuario, setUsuario] = useState<string>('');
+  const [senha, setSenha] = useState<string>('');
 
-  function handleLogin() {
-    fetch("https://localhost:7177/api/Cadastro/logar",
-      {
+  async function handleLogin() {
+    if (!usuario || !senha) {
+      Alert.alert('Erro', 'Preencha email e senha');
+      return;
+    }
 
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          Email: usuario,
-          Senha: senha,
-        }),
-      })
-      .then((resposta) => {
-        console.log(resposta)
-        if (resposta.ok) {
-          console.log("Login bem-sucedido");
-          return resposta.json();
-        } else {
-          alert("Login falhou. Verifique suas credenciais e tente novamente.");
-        }
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('email', usuario)
+      .eq('senha', senha)
+      .single();
 
-      }).then((data) => {
-        if (data) {
-          console.log(data);
-          // Enviar os dados do usuário para a próxima tela
-          navigation.navigate("Home", { usuario: data });
-        }
-      })
+    if (error || !data) {
+      Alert.alert('Erro', 'Email ou senha inválidos');
+      return;
+    }
 
+    Alert.alert('Sucesso', `Bem-vindo, ${data.nome}`);
+    navigation.navigate('Home');
   }
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
+
       <View style={styles.titleContainer2}>
         <Text style={styles.title2}>Login</Text>
 
+        <View style={styles.inputContainer}>
+          <TextInput
+            placeholder="Digite seu email"
+            value={usuario}
+            onChangeText={setUsuario}
+            autoCapitalize="none"
+          />
+        </View>
 
         <View style={styles.inputContainer}>
-          <TextInput placeholder="Enter your username" onChangeText={setUsuario} />
+          <TextInput
+            placeholder="Digite sua senha"
+            value={senha}
+            onChangeText={setSenha}
+            secureTextEntry
+          />
         </View>
-        <View style={styles.inputContainer}>
-          <TextInput placeholder="Enter your password" onChangeText={setSenha} secureTextEntry />
-        </View>
+
         <TouchableOpacity onPress={handleLogin} style={styles.titleContainer}>
           <Text style={styles.title}>Entrar</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Cadastro')} style={styles.titleContainer}>
-          <Text style={styles.title}>Cadastro-se</Text>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Cadastro')}
+          style={styles.titleContainer}
+        >
+          <Text style={styles.title}>Cadastre-se</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
-
-
 }
 
 const styles = StyleSheet.create({
   container: {
-
     flex: 1,
     backgroundColor: '#6C63FF',
-
-
-
   },
   title: {
     fontSize: 24,
@@ -81,8 +87,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#fff',
   },
-
-
   inputContainer: {
     marginVertical: 10,
     width: '80%',
@@ -104,13 +108,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-
-
   },
   title2: {
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     color: '#fff',
+    marginBottom: 20,
   },
 });

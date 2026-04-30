@@ -8,9 +8,9 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
-    Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { supabase } from '../lib/supabase';
 
 export default function Cadastro() {
     const [nome, setNome] = useState('');
@@ -19,25 +19,20 @@ export default function Cadastro() {
     const [senha, setSenha] = useState('');
     const [confirmarSenha, setConfirmarSenha] = useState('');
     const [loading, setLoading] = useState(false);
+
     const navigation = useNavigation<any>();
 
-    const limparCampos = () => {
+    function limparCampos() {
         setNome('');
         setSobrenome('');
         setEmail('');
         setSenha('');
         setConfirmarSenha('');
-    };
+    }
 
-    const validarCampos = () => {
-        if (
-            !nome.trim() ||
-            !sobrenome.trim() ||
-            !email.trim() ||
-            !senha.trim() ||
-            !confirmarSenha.trim()
-        ) {
-            Alert.alert('Erro', 'Por favor, preencha todos os campos');
+    function validarCampos() {
+        if (!nome.trim() || !sobrenome.trim() || !email.trim() || !senha.trim() || !confirmarSenha.trim()) {
+            Alert.alert('Erro', 'Preencha todos os campos');
             return false;
         }
 
@@ -47,7 +42,7 @@ export default function Cadastro() {
         }
 
         if (senha.length < 6) {
-            Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+            Alert.alert('Erro', 'A senha precisa ter pelo menos 6 caracteres');
             return false;
         }
 
@@ -57,47 +52,53 @@ export default function Cadastro() {
         }
 
         return true;
-    };
+    }
 
-    const cadastrarUsuario = async () => {
+    async function cadastrarUsuario() {
         if (!validarCampos()) return;
 
         setLoading(true);
 
         try {
-            const apiUrl =
-                Platform.OS === 'android'
-                    ? 'http://10.0.2.2:7177/api/Cadastro'
-                    : 'https://localhost:7177/api/Cadastro';
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    nome: nome,
-                    sobrenome: sobrenome,
-                    email: email,
-                    senha: senha,
-                }),
+            const { data, error } = await supabase.auth.signUp({
+                email: email.trim(),
+                password: senha,
             });
 
-            if (response.ok) {
-                Alert.alert('Sucesso', 'Cadastro realizado com sucesso!', [
-                    { text: 'OK', onPress: () => navigation.navigate('Login') }
-                ]);
-                limparCampos();
-            } else {
-                Alert.alert('Erro', 'Falha ao realizar cadastro');
+            if (error) {
+                Alert.alert('Erro', error.message);
+                return;
             }
+
+            const userId = data.user?.id;
+
+            const { error: errorDb } = await supabase.from('usuarios').insert({
+                auth_id: userId,
+                nome: nome.trim(),
+                sobrenome: sobrenome.trim(),
+                email: email.trim(),
+            });
+
+            if (errorDb) {
+                Alert.alert('Erro', errorDb.message);
+                return;
+            }
+
+            Alert.alert('Sucesso', 'Cadastro realizado com sucesso!', [
+                {
+                    text: 'OK',
+                    onPress: () => navigation.navigate('Login'),
+                },
+            ]);
+
+            limparCampos();
         } catch (error) {
-            Alert.alert('Erro', 'Erro ao conectar com o servidor');
-            console.error(error);
+            console.log(error);
+            Alert.alert('Erro', 'Erro inesperado ao cadastrar');
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -137,6 +138,7 @@ export default function Cadastro() {
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
+                        autoCapitalize="none"
                         editable={!loading}
                     />
                 </View>
@@ -251,10 +253,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 10,
-        shadowColor: '#6C63FF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
         elevation: 5,
     },
     buttonDisabled: {

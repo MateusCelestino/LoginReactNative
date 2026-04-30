@@ -10,6 +10,7 @@ import Dicas from './screens/Dicas';
 import Favoritos from './screens/Favoritos';
 import CriarVaga from './screens/CriarVaga';
 import Cadastro from './screens/Cadastro';
+import { supabase } from './lib/supabase'
 
 const Stack = createNativeStackNavigator();
 

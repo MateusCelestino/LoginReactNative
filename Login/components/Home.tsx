@@ -1,9 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Pressable, ScrollView, FlatList, Platform } from 'react-native';
-import { useState, useEffect, use } from 'react';
+import {
+    StyleSheet,
+    Text,
+    View,
+    Pressable,
+    FlatList,
+    ActivityIndicator,
+    RefreshControl,
+} from 'react-native';
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { supabase } from '../lib/supabase';
 
-// Interfaces
 interface Usuario {
     nome: string;
 }
@@ -13,130 +21,200 @@ interface Recurso {
     emoji: string;
     titulo: string;
     info: string;
+    email?: string;
+    telefone?: string;
+    salario_esperado?: number;
 }
 
-// pegar os dados do usuário que foi enviado no navigate logado e exibir na tela de home
 export default function Home({ route }: any) {
-    const [userName, setUserName] = useState<Usuario | null>(null);
     const navigation = useNavigation<any>();
 
-    console.log("Dados do usuário recebidos na Home:", route.params.usuario);
-    const abrirVagas = () => {
-        navigation.navigate('Vagas');
-    };
-
-    const abrirRecurso = (recurso: Recurso) => {
-        navigation.navigate(recurso.titulo, { usuario : userName});
-    };
+    const [userName, setUserName] = useState<Usuario | null>(null);
+    const [recursos, setRecursos] = useState<Recurso[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [refreshing, setRefreshing] = useState<boolean>(false);
 
     useEffect(() => {
-        if (route.params.usuario) {
+        if (route?.params?.usuario) {
             setUserName(route.params.usuario);
         }
-    }, [route.params.usuario]);
 
-    const recursos: Recurso[] = [
-        { id: '1', emoji: '📋', titulo: 'Perfil', info: 'Completo seu perfil' },
-        { id: '2', emoji: '💼', titulo: 'Criar Vaga', info: 'Crie sua vaga' },
-        { id: '3', emoji: '📚', titulo: 'Dicas', info: 'Dicas úteis' },
-        { id: '4', emoji: '⭐', titulo: 'Favoritos', info: 'Suas vagas' },
-    ];
+        buscarVagas();
+    }, []);
 
-    return (
-        <View style={styles.container}>
-            <StatusBar style="light" />
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    async function buscarVagas() {
+        setLoading(true);
 
-                {/* Header */}
+        const { data, error } = await supabase
+            .from('vagas')
+            .select('*')
+            .order('id', { ascending: false });
+
+        if (error) {
+            console.log('Erro ao buscar vagas:', error.message);
+            setLoading(false);
+            return;
+        }
+
+        const listaFormatada: Recurso[] = data.map((item: any) => ({
+            id: item.id.toString(),
+            emoji: '💼',
+            titulo: item.nome || 'Vaga sem nome',
+            info: item.experiencia || 'Sem experiência informada',
+            email: item.email,
+            telefone: item.telefone,
+            salario_esperado: item.salario_esperado,
+        }));
+
+        setRecursos(listaFormatada);
+        setLoading(false);
+    }
+
+    async function atualizarLista() {
+        setRefreshing(true);
+        await buscarVagas();
+        setRefreshing(false);
+    }
+
+    function abrirRecurso(recurso: Recurso) {
+        navigation.navigate('DetalhesVaga', {
+            vaga: recurso,
+            usuario: userName,
+        });
+    }
+
+    function abrirVagas() {
+        navigation.navigate('Vagas');
+    }
+
+    function renderHeader() {
+        return (
+            <>
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <View style={styles.saudacao}>
                             <Text style={styles.oi}>Olá, 👋</Text>
-                            <Text style={styles.nomeUsuario}>{userName?.nome || 'Usuário Desconhecido'}</Text>
+                            <Text style={styles.nomeUsuario}>
+                                {userName?.nome || 'Usuário'}
+                            </Text>
                         </View>
+
                         <View style={styles.avatarContainer}>
                             <View style={styles.avatar}>
                                 <Text style={styles.avatarTexto}>
-                                    {userName && userName.nome ? userName.nome.substring(0, 2).toUpperCase() : 'US'}
+                                    {userName?.nome
+                                        ? userName.nome.substring(0, 2).toUpperCase()
+                                        : 'US'}
                                 </Text>
                             </View>
                         </View>
                     </View>
+
                     <Text style={styles.subtitulo}>
                         Encontre a melhor oportunidade para sua carreira
                     </Text>
                 </View>
 
-                {/* Card Destaque */}
                 <View style={styles.cardDestaque}>
                     <View style={styles.destqueBadge}>
                         <Text style={styles.destqueBadgeTexto}>🔥 Em Alta</Text>
                     </View>
+
                     <Text style={styles.destqueTitle}>Vagas Disponíveis</Text>
+
                     <Text style={styles.destqueDescricao}>
                         Explore as melhores oportunidades de trabalho
                     </Text>
-                    <Text style={styles.vagasCount}>23 vagas novas esta semana</Text>
+
+                    <Text style={styles.vagasCount}>
+                        {recursos.length} vagas disponíveis
+                    </Text>
+
                     <Pressable style={styles.botaoPrincipal} onPress={abrirVagas}>
                         <Text style={styles.botaoPrincipalTexto}>Explorar Vagas →</Text>
                     </Pressable>
                 </View>
 
-                {/* Seção Recursos */}
                 <View style={styles.secaoRecursos}>
-                    <Text style={styles.tituloSecao}>Recursos</Text>
-                    <FlatList
-                        data={recursos}
-                        keyExtractor={(item) => item.id}
-                        numColumns={2}
-                        scrollEnabled={false}
-                        columnWrapperStyle={{ justifyContent: 'space-between' }}
-                        renderItem={({ item }) => (
-                            <Pressable style={styles.recursoCard} onPress={() => abrirRecurso(item)}>
-                                <View style={styles.recursoIcone}>
-                                    <Text style={styles.recursoEmoji}>{item.emoji}</Text>
-                                </View>
-                                <Text style={styles.recursoTitulo}>{item.titulo}</Text>
-                                <Text style={styles.recursoInfo}>{item.info}</Text>
-                            </Pressable>
-                        )}
-                    />
+                    <Text style={styles.tituloSecao}>Vagas Recentes</Text>
+                </View>
+            </>
+        );
+    }
+
+    function renderItem({ item }: { item: Recurso }) {
+        return (
+            <Pressable style={styles.recursoCard} onPress={() => abrirRecurso(item)}>
+                <View style={styles.recursoIcone}>
+                    <Text style={styles.recursoEmoji}>{item.emoji}</Text>
                 </View>
 
-                {/* Mantive o restante do seu layout de stats e dicas igual... */}
-                <View style={styles.secaoStats}>
-                    <Text style={styles.tituloSecao}>Seu Desempenho</Text>
-                    <View style={styles.statsContainer}>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statNumero}>12</Text>
-                            <Text style={styles.statLabel}>Inscrições</Text>
-                        </View>
-                        <View style={styles.statDivisor} />
-                        <View style={styles.statItem}>
-                            <Text style={styles.statNumero}>8</Text>
-                            <Text style={styles.statLabel}>Perfil Visto</Text>
-                        </View>
-                        <View style={styles.statDivisor} />
-                        <View style={styles.statItem}>
-                            <Text style={styles.statNumero}>5</Text>
-                            <Text style={styles.statLabel}>Entrevistas</Text>
-                        </View>
+                <Text style={styles.recursoTitulo}>{item.titulo}</Text>
+                <Text style={styles.recursoInfo}>{item.info}</Text>
+
+                {item.salario_esperado && (
+                    <Text style={styles.salario}>
+                        R$ {Number(item.salario_esperado).toFixed(2)}
+                    </Text>
+                )}
+            </Pressable>
+        );
+    }
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6C63FF" />
+                <Text style={styles.loadingText}>Carregando vagas...</Text>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            <StatusBar style="light" />
+
+            <FlatList
+                data={recursos}
+                keyExtractor={(item) => item.id}
+                numColumns={2}
+                renderItem={renderItem}
+                ListHeaderComponent={renderHeader}
+                columnWrapperStyle={styles.columnWrapper}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={atualizarLista} />
+                }
+                ListEmptyComponent={() => (
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>Nenhuma vaga encontrada</Text>
                     </View>
-                </View>
-            </ScrollView>
+                )}
+            />
         </View>
     );
 }
-
-// ... seus estilos permanecem os mesmos
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f8f9ff',
     },
-    scrollView: {
+    loadingContainer: {
         flex: 1,
+        backgroundColor: '#f8f9ff',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 12,
+        color: '#6C63FF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    listContent: {
+        paddingBottom: 24,
     },
     header: {
         backgroundColor: '#6C63FF',
@@ -194,10 +272,6 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         padding: 20,
         borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
         elevation: 4,
     },
     destqueBadge: {
@@ -223,7 +297,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         marginBottom: 12,
-        lineHeight: 20,
     },
     vagasCount: {
         fontSize: 13,
@@ -234,7 +307,6 @@ const styles = StyleSheet.create({
     botaoPrincipal: {
         backgroundColor: '#6C63FF',
         paddingVertical: 14,
-        paddingHorizontal: 20,
         borderRadius: 10,
         alignItems: 'center',
     },
@@ -245,16 +317,16 @@ const styles = StyleSheet.create({
     },
     secaoRecursos: {
         paddingHorizontal: 16,
-        marginBottom: 24,
+        marginBottom: 12,
     },
     tituloSecao: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#1a1a2e',
-        marginBottom: 12,
     },
-    recursoGrid: {
+    columnWrapper: {
         justifyContent: 'space-between',
+        paddingHorizontal: 16,
     },
     recursoCard: {
         width: '48%',
@@ -263,10 +335,6 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 12,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
         elevation: 2,
     },
     recursoIcone: {
@@ -286,92 +354,25 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#1a1a2e',
         marginBottom: 4,
+        textAlign: 'center',
     },
     recursoInfo: {
         fontSize: 12,
         color: '#999',
         textAlign: 'center',
     },
-    secaoStats: {
-        paddingHorizontal: 16,
-        marginBottom: 24,
-    },
-    statsContainer: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingVertical: 20,
-        paddingHorizontal: 16,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    statItem: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    statNumero: {
-        fontSize: 24,
+    salario: {
+        marginTop: 8,
+        fontSize: 13,
         fontWeight: 'bold',
         color: '#6C63FF',
-        marginBottom: 4,
     },
-    statLabel: {
-        fontSize: 12,
-        color: '#999',
-    },
-    statDivisor: {
-        width: 1,
-        height: 40,
-        backgroundColor: '#f0f0f0',
-    },
-    secaoDicas: {
-        paddingHorizontal: 16,
-        marginBottom: 24,
-    },
-    dicaCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    dicaNumero: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#6C63FF',
-        justifyContent: 'center',
+    emptyContainer: {
+        padding: 30,
         alignItems: 'center',
-        marginRight: 12,
     },
-    dicaNumeroTexto: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    dicaConteudo: {
-        flex: 1,
-    },
-    dicaTitulo: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#1a1a2e',
-        marginBottom: 4,
-    },
-    dicaDescricao: {
-        fontSize: 12,
-        color: '#666',
-        lineHeight: 18,
+    emptyText: {
+        color: '#999',
+        fontSize: 15,
     },
 });
