@@ -20,20 +20,30 @@ export default function Login({ navigation }: any) {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('email', usuario)
-      .eq('senha', senha)
-      .single();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: usuario.trim(),
+      password: senha,
+    });
 
-    if (error || !data) {
+    if (error || !data.user) {
       Alert.alert('Erro', 'Email ou senha inválidos');
       return;
     }
 
-    Alert.alert('Sucesso', `Bem-vindo, ${data.nome}`);
-    navigation.navigate('Home');
+    const { data: perfil } = await supabase
+      .from('usuarios')
+      .select('nome, sobrenome')
+      .eq('auth_id', data.user.id)
+      .single();
+
+    const nomeExibido = perfil?.nome ?? data.user.email?.split('@')[0] ?? 'Usuário';
+    Alert.alert('Sucesso', `Bem-vindo, ${nomeExibido}`);
+    navigation.navigate('Home', {
+      usuario: {
+        nome: perfil?.nome ?? nomeExibido,
+        sobrenome: perfil?.sobrenome ?? '',
+      },
+    });
   }
 
   return (

@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Login from './components/Login';
@@ -10,7 +10,7 @@ import Dicas from './screens/Dicas';
 import Favoritos from './screens/Favoritos';
 import CriarVaga from './screens/CriarVaga';
 import Cadastro from './screens/Cadastro';
-import { supabase } from './lib/supabase'
+import DetalhesVaga from './screens/DetalhesVaga';
 
 const Stack = createNativeStackNavigator();
 
@@ -34,6 +34,8 @@ export default function App() {
           options={{ title: 'Favoritos' }} />
         <Stack.Screen name="Criar Vaga" component={CriarVaga}
           options={{ title: 'Criar Vaga' }} />
+        <Stack.Screen name="DetalhesVaga" component={DetalhesVaga}
+          options={{ title: 'Detalhes da Vaga' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

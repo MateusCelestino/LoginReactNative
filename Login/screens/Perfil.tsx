@@ -1,80 +1,67 @@
-﻿import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { supabase } from '../lib/supabase';
 
-interface Candidato {
-    id: number;
+interface Usuario {
     nome: string;
     sobrenome: string;
     email: string;
-    telefone: string;
-    Telefone: string;
-    experiencia: string;
-    sobremim: string;
-    SobreMim: string;
 }
 
-const formatarTelefone = (tel: string): string => {
-    if (!tel) return 'Não informado';
-    const nums = tel.replace(/\D/g, '');
-    if (nums.length === 11) {
-        return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
-    }
-    if (nums.length === 10) {
-        return `(${nums.slice(0, 2)}) ${nums.slice(2, 6)}-${nums.slice(6)}`;
-    }
-    return tel;
-};
-
-export default function CandidatoScreen({ route }: any) {
-    const [userName, setUserName] = useState<Candidato | null>(null);
+export default function Perfil() {
+    const [usuario, setUsuario] = useState<Usuario | null>(null);
     const [loading, setLoading] = useState(true);
     const navigation = useNavigation<any>();
 
     useEffect(() => {
-        const usuario = route.params?.usuario;
+        carregarPerfil();
+    }, []);
 
-        console.log('=== DEBUG CANDIDATO ===');
-        console.log('Dados recebidos via route.params:', JSON.stringify(usuario, null, 2));
+    async function carregarPerfil() {
+        const { data: authData } = await supabase.auth.getUser();
+        const authUser = authData?.user;
 
-        if (usuario) {
-            setUserName(usuario);
+        if (!authUser) {
             setLoading(false);
             return;
         }
 
-        // Se não veio via params, busca da API
-        const apiUrl =
-            Platform.OS === 'android'
-                ? 'http://10.0.2.2:7177/api/Candidato'
-                : 'http://localhost:7177/api/Candidato';
+        const { data } = await supabase
+            .from('usuarios')
+            .select('nome, sobrenome, email')
+            .eq('auth_id', authUser.id)
+            .single();
 
-        fetch(apiUrl)
-            .then((response) => response.json())
-            .then((data) => {
-                console.log('=== RESPOSTA DA API ===');
-                console.log(JSON.stringify(data, null, 2));
-                const candidato = Array.isArray(data) ? data[0] : data;
-                setUserName(candidato);
-            })
-            .catch((error) => {
-                console.error('Erro ao buscar dados do candidato:', error);
-            })
-            .finally(() => setLoading(false));
-    }, []);
+        if (data) {
+            setUsuario(data);
+        } else {
+            // fallback: usa email do auth
+            const emailParts = (authUser.email ?? '').split('@')[0].split('.');
+            setUsuario({
+                nome: emailParts[0] ?? '',
+                sobrenome: emailParts[1] ?? '',
+                email: authUser.email ?? '',
+            });
+        }
+        setLoading(false);
+    }
 
-    // Pega telefone independente de maiúsculo/minúsculo
-    const telefone = userName?.telefone ?? userName?.Telefone ?? '';
-    const sobremim = userName?.sobremim ?? userName?.SobreMim ?? '';
-    const iniciais = userName?.nome
-        ? userName.nome.substring(0, 2).toUpperCase()
-        : 'US';
+    async function sair() {
+        await supabase.auth.signOut();
+        navigation.navigate('Login');
+    }
+
+    const iniciais = [usuario?.nome?.charAt(0), usuario?.sobrenome?.charAt(0)]
+        .filter(Boolean)
+        .join('')
+        .toUpperCase() || 'US';
 
     if (loading) {
         return (
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.loadingContainer}>
-                    <Text style={styles.loadingText}>Carregando...</Text>
+                    <ActivityIndicator size="large" color="#6C63FF" />
                 </View>
             </SafeAreaView>
         );
@@ -82,10 +69,7 @@ export default function CandidatoScreen({ route }: any) {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScrollView
-                contentContainerStyle={styles.container}
-                showsVerticalScrollIndicator={false}
-            >
+            <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={styles.headerBackground} />
                 <View style={styles.card}>
                     <View style={styles.avatarBox}>
@@ -93,60 +77,23 @@ export default function CandidatoScreen({ route }: any) {
                     </View>
 
                     <Text style={styles.name}>
-                        {userName?.nome} {userName?.sobrenome}
+                        {usuario?.nome} {usuario?.sobrenome}
                     </Text>
-                    <Text style={styles.role}>
-                        {userName?.experiencia || 'Experiência não informada'}
-                    </Text>
+                    <Text style={styles.email}>{usuario?.email || 'Email não informado'}</Text>
 
                     <View style={styles.infoRow}>
                         <View style={styles.infoBox}>
-                            <Text style={styles.infoLabel}>Email</Text>
-                            <Text style={styles.infoValue} numberOfLines={1}>
-                                {userName?.email || 'Não informado'}
-                            </Text>
+                            <Text style={styles.infoLabel}>Nome</Text>
+                            <Text style={styles.infoValue}>{usuario?.nome || '-'}</Text>
                         </View>
                         <View style={styles.infoBox}>
-                            <Text style={styles.infoLabel}>Telefone</Text>
-                            <Text style={styles.infoValue}>
-                                {formatarTelefone(telefone)}
-                            </Text>
+                            <Text style={styles.infoLabel}>Sobrenome</Text>
+                            <Text style={styles.infoValue}>{usuario?.sobrenome || '-'}</Text>
                         </View>
-                    </View>
-
-                    <View style={styles.statsRow}>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statNumber}>24</Text>
-                            <Text style={styles.statLabel}>Vagas</Text>
-                        </View>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statNumber}>12</Text>
-                            <Text style={styles.statLabel}>Favoritos</Text>
-                        </View>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statNumber}>8</Text>
-                            <Text style={styles.statLabel}>Conexões</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Sobre mim</Text>
-                        <Text style={styles.sectionText}>
-                            {sobremim || 'Profissional apaixonado por desenvolvimento de aplicativos com foco em experiências intuitivas e design moderno.'}
-                        </Text>
                     </View>
 
                     <View style={styles.buttonsRow}>
-                        <Pressable
-                            style={styles.primaryButton}
-                            onPress={() => navigation.navigate('EditarCandidato', { usuario: userName })}
-                        >
-                            <Text style={styles.primaryButtonText}>Editar Candidato</Text>
-                        </Pressable>
-                        <Pressable
-                            style={styles.secondaryButton}
-                            onPress={() => navigation.goBack()}
-                        >
+                        <Pressable style={styles.secondaryButton} onPress={sair}>
                             <Text style={styles.secondaryButtonText}>Sair</Text>
                         </Pressable>
                     </View>
@@ -166,13 +113,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    loadingText: {
-        fontSize: 16,
-        color: '#6C63FF',
-    },
     container: {
         flexGrow: 1,
-        backgroundColor: '#eef1ff',
         alignItems: 'center',
         paddingTop: 40,
         paddingBottom: 20,
@@ -219,7 +161,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#2b2d42',
     },
-    role: {
+    email: {
         marginTop: 4,
         fontSize: 14,
         color: '#6d7290',
@@ -247,66 +189,14 @@ const styles = StyleSheet.create({
         color: '#333',
         fontWeight: '600',
     },
-    statsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-        marginTop: 20,
-    },
-    statItem: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    statNumber: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#6C63FF',
-    },
-    statLabel: {
-        marginTop: 4,
-        fontSize: 12,
-        color: '#8f92a1',
-    },
-    section: {
-        width: '100%',
-        marginTop: 24,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#2b2d42',
-        marginBottom: 8,
-    },
-    sectionText: {
-        fontSize: 14,
-        color: '#60677d',
-        lineHeight: 20,
-    },
     buttonsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
         width: '100%',
         marginTop: 28,
     },
-    primaryButton: {
-        flex: 1,
-        backgroundColor: '#6C63FF',
-        borderRadius: 16,
-        paddingVertical: 14,
-        marginRight: 8,
-        alignItems: 'center',
-    },
-    primaryButtonText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 14,
-    },
     secondaryButton: {
-        flex: 1,
         backgroundColor: '#eef1ff',
         borderRadius: 16,
         paddingVertical: 14,
-        marginLeft: 8,
         alignItems: 'center',
     },
     secondaryButtonText: {

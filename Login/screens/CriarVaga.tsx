@@ -8,12 +8,11 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
-    Platform,
 } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 export default function CriarVaga({ navigation }: any) {
     const [nome, setNome] = useState('');
-    const [sobrenome, setSobrenome] = useState('');
     const [experiencia, setExperiencia] = useState('');
     const [email, setEmail] = useState('');
     const [telefone, setTelefone] = useState('');
@@ -22,7 +21,6 @@ export default function CriarVaga({ navigation }: any) {
 
     const limparCampos = () => {
         setNome('');
-        setSobrenome('');
         setExperiencia('');
         setEmail('');
         setTelefone('');
@@ -30,23 +28,14 @@ export default function CriarVaga({ navigation }: any) {
     };
 
     const validarCampos = () => {
-        if (
-            !nome.trim() ||
-            !sobrenome.trim() ||
-            !experiencia.trim() ||
-            !email.trim() ||
-            !telefone.trim() ||
-            !valor.trim()
-        ) {
+        if (!nome.trim() || !experiencia.trim() || !email.trim() || !telefone.trim() || !valor.trim()) {
             Alert.alert('Erro', 'Por favor, preencha todos os campos');
             return false;
         }
-
         if (!email.includes('@')) {
             Alert.alert('Erro', 'Email inválido');
             return false;
         }
-
         return true;
     };
 
@@ -55,40 +44,24 @@ export default function CriarVaga({ navigation }: any) {
 
         setLoading(true);
 
-        const vaga: any = {
-            nome: nome,
-            sobrenome: sobrenome,
-            experiencia: experiencia,
-            email: email,
-            telefone: telefone,
-            valor: valor,
-        };
+        const { error } = await supabase.from('vagas').insert({
+            nome: nome.trim(),
+            experiencia: experiencia.trim(),
+            email: email.trim(),
+            telefone: telefone.trim(),
+            salario_esperado: parseFloat(valor.replace(',', '.')) || null,
+        });
 
-        try {
-            const apiUrl = 'https://localhost:7177/api/Candidato';
+        setLoading(false);
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(vaga),
-            });
-
-            if (response.ok) {
-                Alert.alert('Sucesso', 'Vaga cadastrada com sucesso!');
-                // fechar a tela 
-                navigation.goBack();
-                limparCampos();
-            } else {
-                Alert.alert('Erro', 'Falha ao cadastrar vaga');
-            }
-        } catch (error) {
-            Alert.alert('Erro', 'Erro ao conectar com o servidor');
-            console.error(error);
-        } finally {
-            setLoading(false);
+        if (error) {
+            Alert.alert('Erro', error.message);
+            return;
         }
+
+        Alert.alert('Sucesso', 'Vaga cadastrada com sucesso!');
+        navigation.goBack();
+        limparCampos();
     };
 
     return (
@@ -100,10 +73,10 @@ export default function CriarVaga({ navigation }: any) {
 
             <View style={styles.formContainer}>
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Nome</Text>
+                    <Text style={styles.label}>Nome da Vaga</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="Digite o nome"
+                        placeholder="Ex: Desenvolvedor React Native"
                         value={nome}
                         onChangeText={setNome}
                         editable={!loading}
@@ -111,21 +84,10 @@ export default function CriarVaga({ navigation }: any) {
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Sobrenome</Text>
+                    <Text style={styles.label}>Experiência Necessária</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="Digite o sobrenome"
-                        value={sobrenome}
-                        onChangeText={setSobrenome}
-                        editable={!loading}
-                    />
-                </View>
-
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Experiência</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Ex: 5 anos em desenvolvimento"
+                        placeholder="Ex: 2 anos em desenvolvimento mobile"
                         value={experiencia}
                         onChangeText={setExperiencia}
                         multiline
@@ -136,13 +98,14 @@ export default function CriarVaga({ navigation }: any) {
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Email</Text>
+                    <Text style={styles.label}>Email de Contato</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="seu@email.com"
+                        placeholder="contato@empresa.com"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
+                        autoCapitalize="none"
                         editable={!loading}
                     />
                 </View>
@@ -249,10 +212,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 10,
-        shadowColor: '#6C63FF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
         elevation: 5,
     },
     buttonDisabled: {

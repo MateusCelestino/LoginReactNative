@@ -12,10 +12,6 @@ import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 
-interface Usuario {
-    nome: string;
-}
-
 interface Recurso {
     id: string;
     emoji: string;
@@ -26,47 +22,67 @@ interface Recurso {
     salario_esperado?: number;
 }
 
+const ACOES = [
+    { label: 'Perfil', emoji: '👤', tela: 'Perfil' },
+    { label: 'Criar Vaga', emoji: '➕', tela: 'Criar Vaga' },
+    { label: 'Favoritos', emoji: '⭐', tela: 'Favoritos' },
+    { label: 'Dicas', emoji: '💡', tela: 'Dicas' },
+];
+
 export default function Home({ route }: any) {
     const navigation = useNavigation<any>();
 
-    const [userName, setUserName] = useState<Usuario | null>(null);
+    const [nomeUsuario, setNomeUsuario] = useState<string>('');
     const [recursos, setRecursos] = useState<Recurso[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [refreshing, setRefreshing] = useState<boolean>(false);
 
     useEffect(() => {
-        if (route?.params?.usuario) {
-            setUserName(route.params.usuario);
-        }
-
+        carregarNome();
         buscarVagas();
     }, []);
 
+    async function carregarNome() {
+        if (route?.params?.usuario?.nome) {
+            setNomeUsuario(route.params.usuario.nome);
+            return;
+        }
+
+        const { data: authData } = await supabase.auth.getUser();
+        const authUser = authData?.user;
+        if (!authUser) return;
+
+        const { data } = await supabase
+            .from('usuarios')
+            .select('nome')
+            .eq('auth_id', authUser.id)
+            .single();
+
+        if (data?.nome) {
+            setNomeUsuario(data.nome);
+        } else if (authUser.email) {
+            setNomeUsuario(authUser.email.split('@')[0]);
+        }
+    }
+
     async function buscarVagas() {
         setLoading(true);
-
         const { data, error } = await supabase
             .from('vagas')
             .select('*')
             .order('id', { ascending: false });
 
-        if (error) {
-            console.log('Erro ao buscar vagas:', error.message);
-            setLoading(false);
-            return;
+        if (!error && data) {
+            setRecursos(data.map((item: any) => ({
+                id: item.id.toString(),
+                emoji: '💼',
+                titulo: item.nome || 'Vaga sem nome',
+                info: item.experiencia || 'Sem experiência informada',
+                email: item.email,
+                telefone: item.telefone,
+                salario_esperado: item.salario_esperado,
+            })));
         }
-
-        const listaFormatada: Recurso[] = data.map((item: any) => ({
-            id: item.id.toString(),
-            emoji: '💼',
-            titulo: item.nome || 'Vaga sem nome',
-            info: item.experiencia || 'Sem experiência informada',
-            email: item.email,
-            telefone: item.telefone,
-            salario_esperado: item.salario_esperado,
-        }));
-
-        setRecursos(listaFormatada);
         setLoading(false);
     }
 
@@ -76,61 +92,60 @@ export default function Home({ route }: any) {
         setRefreshing(false);
     }
 
-    function abrirRecurso(recurso: Recurso) {
-        navigation.navigate('DetalhesVaga', {
-            vaga: recurso,
-            usuario: userName,
-        });
-    }
-
-    function abrirVagas() {
-        navigation.navigate('Vagas');
+    async function sair() {
+        await supabase.auth.signOut();
+        navigation.navigate('Login');
     }
 
     function renderHeader() {
         return (
             <>
+                {/* Header */}
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <View style={styles.saudacao}>
                             <Text style={styles.oi}>Olá, 👋</Text>
-                            <Text style={styles.nomeUsuario}>
-                                {userName?.nome || 'Usuário'}
-                            </Text>
+                            <Text style={styles.nomeUsuario}>{nomeUsuario || 'Usuário'}</Text>
                         </View>
-
-                        <View style={styles.avatarContainer}>
+                        <Pressable style={styles.avatarContainer} onPress={sair}>
                             <View style={styles.avatar}>
                                 <Text style={styles.avatarTexto}>
-                                    {userName?.nome
-                                        ? userName.nome.substring(0, 2).toUpperCase()
-                                        : 'US'}
+                                    {nomeUsuario ? nomeUsuario.substring(0, 2).toUpperCase() : 'US'}
                                 </Text>
                             </View>
-                        </View>
+                            <Text style={styles.sairTexto}>Sair</Text>
+                        </Pressable>
                     </View>
-
                     <Text style={styles.subtitulo}>
                         Encontre a melhor oportunidade para sua carreira
                     </Text>
                 </View>
 
+                {/* Ações rápidas */}
+                <View style={styles.acoesContainer}>
+                    {ACOES.map((acao) => (
+                        <Pressable
+                            key={acao.tela}
+                            style={styles.acaoCard}
+                            onPress={() => navigation.navigate(acao.tela)}
+                        >
+                            <Text style={styles.acaoEmoji}>{acao.emoji}</Text>
+                            <Text style={styles.acaoLabel}>{acao.label}</Text>
+                        </Pressable>
+                    ))}
+                </View>
+
+                {/* Card destaque */}
                 <View style={styles.cardDestaque}>
                     <View style={styles.destqueBadge}>
                         <Text style={styles.destqueBadgeTexto}>🔥 Em Alta</Text>
                     </View>
-
                     <Text style={styles.destqueTitle}>Vagas Disponíveis</Text>
-
                     <Text style={styles.destqueDescricao}>
                         Explore as melhores oportunidades de trabalho
                     </Text>
-
-                    <Text style={styles.vagasCount}>
-                        {recursos.length} vagas disponíveis
-                    </Text>
-
-                    <Pressable style={styles.botaoPrincipal} onPress={abrirVagas}>
+                    <Text style={styles.vagasCount}>{recursos.length} vagas disponíveis</Text>
+                    <Pressable style={styles.botaoPrincipal} onPress={() => navigation.navigate('Vagas')}>
                         <Text style={styles.botaoPrincipalTexto}>Explorar Vagas →</Text>
                     </Pressable>
                 </View>
@@ -144,15 +159,16 @@ export default function Home({ route }: any) {
 
     function renderItem({ item }: { item: Recurso }) {
         return (
-            <Pressable style={styles.recursoCard} onPress={() => abrirRecurso(item)}>
+            <Pressable
+                style={styles.recursoCard}
+                onPress={() => navigation.navigate('DetalhesVaga', { vaga: item })}
+            >
                 <View style={styles.recursoIcone}>
                     <Text style={styles.recursoEmoji}>{item.emoji}</Text>
                 </View>
-
                 <Text style={styles.recursoTitulo}>{item.titulo}</Text>
                 <Text style={styles.recursoInfo}>{item.info}</Text>
-
-                {item.salario_esperado && (
+                {item.salario_esperado != null && (
                     <Text style={styles.salario}>
                         R$ {Number(item.salario_esperado).toFixed(2)}
                     </Text>
@@ -173,7 +189,6 @@ export default function Home({ route }: any) {
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
-
             <FlatList
                 data={recursos}
                 keyExtractor={(item) => item.id}
@@ -244,7 +259,6 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     avatarContainer: {
-        justifyContent: 'center',
         alignItems: 'center',
     },
     avatar: {
@@ -260,16 +274,47 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
+    sairTexto: {
+        color: '#e0d9ff',
+        fontSize: 11,
+        marginTop: 4,
+    },
     subtitulo: {
         fontSize: 14,
         color: '#e0d9ff',
         lineHeight: 20,
     },
+    acoesContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        marginTop: 20,
+        marginBottom: 4,
+    },
+    acaoCard: {
+        flex: 1,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        alignItems: 'center',
+        paddingVertical: 14,
+        marginHorizontal: 4,
+        elevation: 2,
+    },
+    acaoEmoji: {
+        fontSize: 22,
+        marginBottom: 4,
+    },
+    acaoLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#333',
+        textAlign: 'center',
+    },
     cardDestaque: {
         backgroundColor: '#fff',
         marginHorizontal: 16,
-        marginTop: 20,
-        marginBottom: 20,
+        marginTop: 16,
+        marginBottom: 16,
         padding: 20,
         borderRadius: 16,
         elevation: 4,
